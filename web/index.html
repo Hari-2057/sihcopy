@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RawMatrix-OceanEmbed | Operational Subsurface Ocean Temperature Platform</title>
+  <meta name="description" content="RawMatrix-OceanEmbed: Operational AI-driven platform for depth-wise subsurface ocean temperature estimation from satellite surface observations across the North Indian Ocean." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌊</text></svg>">
+  
+  <!-- Leaflet CSS for Interactive Spatial Mapping -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  
+  <!-- Custom Application Stylesheet -->
+  <link rel="stylesheet" href="css/style.css?v=argo_curve_v12" />
+</head>
+<body>
+
+  <!-- Top Header Bar: Clean Institutional & Technical Authority -->
+  <header class="gov-header">
+    <div class="gov-container">
+      <div class="gov-brand">
+        <div class="gov-crest">
+          <svg viewBox="0 0 100 100" class="rawmatrix-emblem" aria-label="RawMatrix-OceanEmbed Emblem" style="width: 44px; height: 44px;">
+            <defs>
+              <linearGradient id="rmCrestGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00e5cc"/>
+                <stop offset="100%" stop-color="#3b82f6"/>
+              </linearGradient>
+            </defs>
+            <rect x="10" y="10" width="80" height="80" rx="18" fill="rgba(0, 229, 204, 0.08)" stroke="url(#rmCrestGrad)" stroke-width="2.5"/>
+            <path d="M26 32 L50 18 L74 32 L74 68 L50 82 L26 68 Z" fill="none" stroke="var(--accent-teal)" stroke-width="2" stroke-dasharray="2 2"/>
+            <path d="M30 50 Q42 34 54 50 T78 50" fill="none" stroke="var(--accent-teal)" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="50" cy="50" r="6" fill="#f43f5e"/>
+            <circle cx="50" cy="50" r="14" fill="none" stroke="var(--accent-teal)" stroke-width="1.5" opacity="0.6"/>
+          </svg>
+        </div>
+        <div class="gov-titles">
+          <h1 class="org-title brand-title">RawMatrix-OceanEmbed</h1>
+          <span class="sub-center">Operational AI Subsurface Ocean Temperature Platform</span>
+        </div>
+      </div>
+      <div class="header-status">
+        <!-- Real-Time Operational Synoptic Clock -->
+        <div class="live-clock-pill" id="live-clock-pill" title="Live Operational Synoptic Clock (IST & UTC)">
+          <span class="clock-pulse-dot"></span>
+          <span class="clock-date" id="live-clock-date">13 Sep 2026</span>
+          <span class="clock-sep">&bull;</span>
+          <span class="clock-time-ist" id="live-clock-ist">16:45:00 IST</span>
+          <span class="clock-time-utc" id="live-clock-utc">(11:15:00 UTC)</span>
+        </div>
+        <div class="status-pill">
+          <span class="status-dot pulsing"></span>
+          <span>OPERATIONAL</span>
+        </div>
+        <div class="resolution-badge">
+          <span>0.25&deg; RESOLUTION</span>
+        </div>
+        <!-- Theme Toggle Switch -->
+        <button class="theme-toggle-btn" id="theme-toggle" title="Toggle Light / Dark Mode" aria-label="Toggle Light / Dark Mode">
+          <span class="theme-icon" id="theme-icon">☀️</span>
+          <span class="theme-label" id="theme-label">Light Mode</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="main-nav">
+      <div class="nav-container">
+        <div class="nav-logo">
+          <span class="logo-mark">🌊</span>
+          <span class="logo-text">Ocean<strong>Embed</strong></span>
+          <span class="logo-tag">AI-NET</span>
+        </div>
+        <div class="nav-tabs" role="tablist">
+          <button class="nav-tab active" data-tab="tab-overview" id="nav-overview">
+            <span class="tab-icon">🏠</span> Overview & Science
+          </button>
+          <button class="nav-tab" data-tab="tab-explorer" id="nav-explorer">
+            <span class="tab-icon">🗺️</span> Spatial Subsurface Explorer
+          </button>
+          <button class="nav-tab" data-tab="tab-transect" id="nav-transect">
+            <span class="tab-icon">🔬</span> Transect & Explainability
+          </button>
+          <button class="nav-tab" data-tab="tab-metrics" id="nav-metrics">
+            <span class="tab-icon">📊</span> AI Validation & Metrics
+          </button>
+        </div>
+        <div class="nav-actions">
+          <div class="live-coord-badge" id="live-coords-display">
+            <span class="coord-label">TARGET:</span>
+            <span class="coord-val" id="header-coord-text">14.00&deg;N, 87.50&deg;E</span>
+          </div>
+        </div>
+      </div>
+    </nav>
+  </header>
+
+  <!-- Main Content Wrapper -->
+  <main class="app-main">
+
+    <!-- ================================================================= -->
+    <!-- TAB 1: OVERVIEW & SCIENCE (Hand sketches 3 & 4 + Problem Statement Background) -->
+    <!-- ================================================================= -->
+    <section class="tab-content active" id="tab-overview">
+      <!-- Hero Section with Realistic 3D Simulation -->
+      <div class="hero-section">
+        <div class="hero-left">
+          <div class="hero-chip">
+            <span class="sparkle">🛰️</span> Representation Learning for Marine Remote Sensing
+          </div>
+          <h2 class="hero-title">
+            Predicting <span class="gradient-text">Subsurface Ocean Temperature</span> from Satellite Surface Data
+          </h2>
+          <p class="hero-lead">
+            Continuous 3D thermal reconstruction of the North Indian Ocean down to 1000m depth using multi-mission satellite embeddings, overcoming the spatial-temporal sparsity of in-situ ARGO profiling floats.
+          </p>
+          <div class="hero-cta-group">
+            <button class="btn btn-primary" id="btn-hero-explore">
+              Explore Subsurface Map <span class="arrow">&rarr;</span>
+            </button>
+            <button class="btn btn-secondary" id="btn-hero-transect">
+              View Transect Slices
+            </button>
+          </div>
+        </div>
+        <div class="hero-right">
+          <div class="hero-realistic-card">
+            <div class="card-header-clean">
+              <div class="canvas-title-group">
+                <span class="canvas-title">NORTH INDIAN OCEAN REMOTE SENSING &amp; 3D THERMAL CONTINUUM</span>
+                <span class="canvas-sub">Multi-Mission Satellite Constellation &bull; Continuous Subsurface Stratification (0&ndash;1000m)</span>
+              </div>
+              <div class="canvas-controls">
+                <span class="live-pulse">SPACEBORNE 3D CUTAWAY</span>
+              </div>
+            </div>
+            <!-- High-Resolution Realistic 3D Satellite & Subsurface Visualization -->
+            <div class="realistic-img-wrap">
+              <img src="assets/ocean_satellite_3d_realism.jpg" alt="Realistic 3D Satellite Observation of North Indian Ocean Subsurface Temperature" class="hero-realistic-img" id="hero-main-img" />
+              <div class="img-floating-telemetry">
+                <div class="telemetry-chip chip-sat">
+                  <span class="dot-sat"></span>
+                  <span>S-Band / Altimeter Radar Swath</span>
+                </div>
+                <div class="telemetry-chip chip-surface">
+                  <span class="dot-surface"></span>
+                  <span>0m Surface Mixed Layer (28&ndash;31&deg;C)</span>
+                </div>
+                <div class="telemetry-chip chip-thermo">
+                  <span class="dot-thermo"></span>
+                  <span>100m Thermocline Barrier Layer (D&#8322;&#8320;)</span>
+                </div>
+                <div class="telemetry-chip chip-abyss">
+                  <span class="dot-abyss"></span>
+                  <span>1000m Abyssal Bathymetry (7&ndash;10&deg;C)</span>
+                </div>
+              </div>
+            </div>
+            <div class="canvas-footer">
+              <span>Deep-learning representation fusion of surface microwave altimetry and infrared SST into vertical thermal structures</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Executive Stat Cards (From Sketch 3) -->
+      <div class="stat-strip">
+        <div class="stat-card">
+          <div class="stat-icon">🌐</div>
+          <div class="stat-meta">
+            <span class="stat-label">Region Covered</span>
+            <span class="stat-val">North Indian Ocean</span>
+            <span class="stat-sub">[5.0&deg;N &ndash; 30.0&deg;N, 45.0&deg;E &ndash; 105.0&deg;E]</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">⚓</div>
+          <div class="stat-meta">
+            <span class="stat-label">Depth Range</span>
+            <span class="stat-val">0 &ndash; 1000m</span>
+            <span class="stat-sub">15 Discrete Standard Vertical Levels</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">📐</div>
+          <div class="stat-meta">
+            <span class="stat-label">Spatial Resolution</span>
+            <span class="stat-val">0.25&deg; Grid</span>
+            <span class="stat-sub">24,000 Cells (100 Lat &times; 240 Lon)</span>
+          </div>
+        </div>
+        <div class="stat-card highlight-card">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-meta">
+            <span class="stat-label">Model Skill (Test Set)</span>
+            <span class="stat-val">R = 0.913 &bull; RMSE = 0.669&deg;C</span>
+            <span class="stat-sub">Validated on Unseen 2008&ndash;2009 Data</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ================================================================= -->
+      <!-- CORE PROJECT MODULES: SUBSURFACE & SATELLITE INPUT ARCHITECTURE -->
+      <!-- ================================================================= -->
+      <div class="section-container project-modules-section">
+        <div class="section-header">
+          <span class="section-tag">CORE PROJECT ARCHITECTURE &amp; DATA MODULES</span>
+          <h3 class="section-title">End-to-End Subsurface Modeling Modules</h3>
+          <p class="section-sub">Standardized satellite surface observations, target GLORYS ocean reanalysis, and the OceanEmbed-Net neural synthesis engine.</p>
+        </div>
+
+        <div class="modules-grid">
+          <!-- MODULE BOX 1: Surface Satellite Observation Inputs -->
+          <div class="module-box">
+            <div class="module-head">
+              <div class="module-badge">MODULE 01</div>
+              <span class="module-pill">7 Surface Variables</span>
+            </div>
+            <h4 class="module-title">🛰️ Surface Satellite Input Streams</h4>
+            <p class="module-desc">Multi-mission satellite remote sensing inputs harmonized onto a canonical 0.25&deg; spatial grid across the North Indian Ocean:</p>
+            
+            <div class="module-var-list">
+              <div class="var-item">
+                <span class="var-tag">SST</span>
+                <div class="var-info">
+                  <strong>NOAA OISST v2.1 (AVHRR)</strong>
+                  <span>Sea Surface Temperature (&deg;C) &bull; 0.25&deg; Daily &bull; Upper thermodynamic boundary</span>
+                </div>
+              </div>
+              <div class="var-item">
+                <span class="var-tag">SLA</span>
+                <div class="var-info">
+                  <strong>CMEMS DUACS L4 All-Satellite</strong>
+                  <span>Sea Level Anomaly (m) &bull; Vertically integrated density &amp; thermocline displacement</span>
+                </div>
+              </div>
+              <div class="var-item">
+                <span class="var-tag">SSS</span>
+                <div class="var-info">
+                  <strong>CMEMS Multi-Observation</strong>
+                  <span>Sea Surface Salinity (PSU) &bull; Freshwater capping &amp; barrier layer stability</span>
+                </div>
+              </div>
+              <div class="var-item">
+                <span class="var-tag">Currents</span>
+                <div class="var-info">
+                  <strong>CMEMS Geostrophic + Ekman ($u_o, v_o$)</strong>
+                  <span>Surface velocity vectors (m/s) &bull; Upper-layer mass and heat transport</span>
+                </div>
+              </div>
+              <div class="var-item">
+                <span class="var-tag">Winds</span>
+                <div class="var-info">
+                  <strong>CMEMS / ERA5 ($u_{10}, v_{10}$)</strong>
+                  <span>10m Wind stress vectors (m/s) &bull; Ekman pumping &amp; coastal upwelling force</span>
+                </div>
+              </div>
+              <div class="var-item">
+                <span class="var-tag">Harmonics</span>
+                <div class="var-info">
+                  <strong>Spatiotemporal Auxiliary Channels</strong>
+                  <span>Day-of-year $(\sin, \cos)$ cyclic embeddings, latitude gradient &amp; land-sea mask</span>
+                </div>
+              </div>
+            </div>
+            
+            <div class="module-foot">
+              <span>Input Tensor Shape: <strong>11 &times; 64 &times; 64</strong> (7 surface + 4 auxiliary channels)</span>
+            </div>
+          </div>
+
+          <!-- MODULE BOX 2: Subsurface Target Ground Truth Model -->
+          <div class="module-box">
+            <div class="module-head">
+              <div class="module-badge">MODULE 02</div>
+              <span class="module-pill">15 Standard Depths</span>
+            </div>
+            <h4 class="module-title">⚓ Subsurface Target Reanalysis</h4>
+            <p class="module-desc">Physics-constrained global ocean reanalysis assimilating millions of in-situ observations as supervised target:</p>
+            
+            <div class="module-sub-card">
+              <div class="sub-target-brand">
+                <span class="brand-logo">🌊</span>
+                <div>
+                  <strong>Copernicus Marine GLORYS12V1</strong>
+                  <span class="brand-sub">Global Ocean Physics Reanalysis (1/12&deg; eddy-resolving)</span>
+                </div>
+              </div>
+              <p class="sub-target-desc">
+                Provides reference 3D potential temperature ($\theta_o$) ground truth. Assimilates all available in-situ <strong>ARGO profiling floats, shipboard CTD casts, and moored buoys (RAMA / OMNI)</strong> via a reduced-order Kalman filter.
+              </p>
+              
+              <div class="depth-levels-badge-wrap">
+                <span class="depth-grid-label">15 Mandatory Vertical Standard Depths (0 to 1000m):</span>
+                <div class="depth-chips">
+                  <span class="d-chip">0m</span><span class="d-chip">5m</span><span class="d-chip">10m</span><span class="d-chip">20m</span>
+                  <span class="d-chip">30m</span><span class="d-chip">50m</span><span class="d-chip">75m</span><span class="d-chip">100m</span>
+                  <span class="d-chip">125m</span><span class="d-chip">150m</span><span class="d-chip">200m</span><span class="d-chip">300m</span>
+                  <span class="d-chip">500m</span><span class="d-chip">700m</span><span class="d-chip">1000m</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="module-foot">
+              <span>Physical Inversion Support: <strong>Preserves 32% natural Bay of Bengal temperature inversions</strong></span>
+            </div>
+          </div>
+
+          <!-- MODULE BOX 3: OceanEmbed-Net Deep Learning Architecture -->
+          <div class="module-box">
+            <div class="module-head">
+              <div class="module-badge">MODULE 03</div>
+              <span class="module-pill">2.49M Parameters</span>
+            </div>
+            <h4 class="module-title">🧠 OceanEmbed-Net AI Architecture</h4>
+            <p class="module-desc">Convolutional representation learning with spatial multi-head self-attention at the bottleneck:</p>
+            
+            <div class="arch-stages-list">
+              <div class="arch-stage">
+                <div class="stage-badge">Stage 1</div>
+                <div class="stage-info">
+                  <strong>Multi-Scale Conv Encoder (GroupNorm + GELU)</strong>
+                  <span>Compresses 11-channel surface inputs across 3 hierarchical blocks ($64\times32^2 \to 128\times16^2 \to 256\times8^2$).</span>
+                </div>
+              </div>
+              <div class="arch-stage highlight-stage">
+                <div class="stage-badge">Stage 2</div>
+                <div class="stage-info">
+                  <strong>Bottleneck Spatial Self-Attention (8&times;8 Tokens)</strong>
+                  <span>64 tokens with 4 attention heads capturing non-local teleconnections, cross-basin Rossby waves, and eddy tilts.</span>
+                </div>
+              </div>
+              <div class="arch-stage">
+                <div class="stage-badge">Stage 3</div>
+                <div class="stage-info">
+                  <strong>3D Depth Profile Decoder</strong>
+                  <span>Reconstructs spatial resolution via skip connections and projects directly onto 15 continuous depth temperature channels.</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="module-foot">
+              <span>Latent Deliverable: <strong>256 &times; 8 &times; 8 Satellite Embeddings</strong> (exportable for marine heatwaves &amp; fisheries)</span>
+            </div>
+          </div>
+
+          <!-- MODULE BOX 4: Operational Data Periods & Benchmarks -->
+          <div class="module-box">
+            <div class="module-head">
+              <div class="module-badge">MODULE 04</div>
+              <span class="module-pill">Strict Time Split</span>
+            </div>
+            <h4 class="module-title">📊 Operational Data Epochs &amp; Results</h4>
+            <p class="module-desc">Trained and validated on real-world multi-decade observations without temporal leakage:</p>
+            
+            <div class="data-epochs-card">
+              <div class="epoch-row">
+                <span class="epoch-label">1994 &ndash; 2006</span>
+                <span class="epoch-val">Training Split (12+ Years Multi-Mission Convergence)</span>
+              </div>
+              <div class="epoch-row">
+                <span class="epoch-label">2007</span>
+                <span class="epoch-val">Validation Split (Hyperparameter Tuning &amp; Early Stopping)</span>
+              </div>
+              <div class="epoch-row test-epoch">
+                <span class="epoch-label">2008 &ndash; 2009</span>
+                <span class="epoch-val">Blind Operational Test (Unseen Full Basin Evaluation)</span>
+              </div>
+              <div class="epoch-row modern-epoch">
+                <span class="epoch-label">2018</span>
+                <span class="epoch-val">Extended Validation Epoch (Modern Satellite Constellation)</span>
+              </div>
+            </div>
+
+            <div class="metrics-summary-strip">
+              <div class="metric-box">
+                <span class="m-val">0.669&deg;C</span>
+                <span class="m-lbl">Full-Column RMSE</span>
+              </div>
+              <div class="metric-box">
+                <span class="m-val">0.913</span>
+                <span class="m-lbl">Pearson Correlation</span>
+              </div>
+              <div class="metric-box">
+                <span class="m-val">97.7%</span>
+                <span class="m-lbl">D₂₀ Thermocline Skill</span>
+              </div>
+            </div>
+
+            <div class="module-foot">
+              <span>Resolution: <strong>0.25&deg; Grid (24,000 cells) &bull; Operational Domain: 5&deg;N&ndash;30&deg;N, 45&deg;E&ndash;105&deg;E</strong></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="banner-cta">
+          <div class="banner-content">
+            <h4>Ready to Explore Subsurface Temperatures?</h4>
+            <p>Inspect real-time 3D volumetric thermal profiles, vertical transects, and interactive basin coordinates.</p>
+          </div>
+          <button class="btn btn-primary" id="btn-banner-explore">
+            Launch Spatial Explorer &rarr;
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- TAB 2: SPATIAL SUBSURFACE EXPLORER (Hand sketch 2) -->
+    <!-- ================================================================= -->
+    <section class="tab-content" id="tab-explorer">
+      <!-- Printable Publication Report Header (Visible strictly during Print/PDF Export) -->
+      <div class="print-only-report-header" aria-hidden="true">
+        <div class="print-brand">
+          <span class="print-logo">🌊</span>
+          <div>
+            <h1 class="print-title">RawMatrix-OceanEmbed: Subsurface Ocean Temperature Report</h1>
+            <span class="print-subtitle">Operational AI Spatial-Temporal Analysis • 0m to 1000m Water Column</span>
+          </div>
+        </div>
+        <div class="print-meta-right">
+          <div id="print-station-coords"><strong>Station:</strong> 14.00°N, 87.50°E</div>
+          <div id="print-station-basin"><strong>Basin:</strong> Bay of Bengal</div>
+          <div id="print-station-time"><strong>Epoch:</strong> 15 Sep 2008 • 12:00 UTC (Cycle: 12Z)</div>
+        </div>
+      </div>
+
+      <!-- Top Action Bar: Download (.nc, .csv) and Print/Download PDF -->
+      <div class="explorer-top-action-bar">
+        <div class="action-bar-left">
+          <div class="action-tag"><span class="pulse-icon">🗺️</span> SPATIAL SUBSURFACE EXPLORER</div>
+          <h2 class="action-heading">3D Ocean Thermal Stratification &amp; Spatial Bathymetry</h2>
+          <p class="action-sub">North Indian Ocean • Multi-Mission Satellite Surface-to-Subsurface Inference (0m to 1000m)</p>
+        </div>
+        <div class="action-bar-right">
+          <!-- Download Dropdown (.nc, .csv) -->
+          <div class="export-dropdown-wrapper" id="export-dropdown-wrapper">
+            <button class="btn-action btn-download-dropdown" id="btn-export-dropdown" type="button" aria-haspopup="true" aria-expanded="false" title="Download Gridded Oceanographic Data">
+              <span class="btn-icon">📥</span>
+              <span class="btn-label">Download Data</span>
+              <span class="dropdown-caret">▾</span>
+            </button>
+            <div class="export-dropdown-menu" id="export-dropdown-menu" role="menu">
+              <button class="export-dropdown-item" id="btn-download-nc" type="button" role="menuitem">
+                <span class="format-badge format-nc">.nc</span>
+                <div class="format-desc">
+                  <span class="format-name">NetCDF Grid (.nc)</span>
+                  <span class="format-hint">CF-1.8 Compliant 3D Thermal Array</span>
+                </div>
+              </button>
+              <button class="export-dropdown-item" id="btn-download-csv" type="button" role="menuitem">
+                <span class="format-badge format-csv">.csv</span>
+                <div class="format-desc">
+                  <span class="format-name">Depth Profile (.csv)</span>
+                  <span class="format-hint">15 Discrete Depths &amp; Anomaly Records</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Print / Download PDF Button -->
+          <button class="btn-action btn-export-pdf" id="btn-export-pdf" type="button" title="Print or save the complete ocean analysis page as a downloadable PDF report">
+            <span class="btn-icon">📄</span>
+            <span class="btn-label">Print / Download PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="explorer-grid">
+        
+        <!-- Left: Interactive Indian Ocean Map -->
+        <div class="card map-card">
+          <div class="card-header">
+            <div class="header-left">
+              <h3 class="card-title">North Indian Ocean Map</h3>
+              <span class="region-bounds">[5.0&deg;N &ndash; 30.0&deg;N, 45.0&deg;E &ndash; 105.0&deg;E &bull; 0.25&deg; Grid]</span>
+            </div>
+            <div class="header-coords">
+              <span class="coord-tag">Pinned Location:</span>
+              <span class="coord-box" id="map-selected-coord">[14.00&deg;N, 87.50&deg;E]</span>
+              <span class="basin-badge" id="map-selected-basin">Bay of Bengal</span>
+            </div>
+          </div>
+
+          <!-- Temporal Controls: Clean Date and Time Selector with Synoptic Cycles -->
+          <div class="temporal-control-bar">
+            <div class="temporal-group">
+              <span class="temporal-label"><span class="label-icon">📅</span> Date &amp; Time:</span>
+              <div class="temporal-inputs">
+                <input type="date" id="explorer-date-input" class="temporal-date-picker" value="2008-09-15" min="1994-06-01" max="2026-09-15" title="Select Observation Date" />
+                <input type="time" id="explorer-time-input" class="temporal-time-picker" value="12:00" title="Select Observation Time" />
+              </div>
+            </div>
+            <div class="temporal-cycles">
+              <span class="cycle-label">Synoptic Cycle:</span>
+              <div class="cycle-buttons">
+                <button class="cycle-chip" data-time="00:00" title="00:00 UTC (05:30 IST)">00Z</button>
+                <button class="cycle-chip" data-time="06:00" title="06:00 UTC (11:30 IST)">06Z</button>
+                <button class="cycle-chip active" data-time="12:00" title="12:00 UTC (17:30 IST)">12Z</button>
+                <button class="cycle-chip" data-time="18:00" title="18:00 UTC (23:30 IST)">18Z</button>
+                <button class="cycle-chip btn-live-now" id="btn-temporal-live" title="Sync with Live System Date & Time">⚡ Live</button>
+              </div>
+            </div>
+            <div class="temporal-badge" id="temporal-badge">
+              <span class="badge-dot pulsing"></span>
+              <span id="temporal-badge-text">15 Sep 2008 &bull; 12:00 UTC</span>
+            </div>
+          </div>
+
+          <!-- Quick Region Buttons -->
+          <div class="region-quick-select">
+            <span class="quick-label">Quick Basins:</span>
+            <div class="quick-buttons">
+              <button class="btn-chip active" data-lat="14.0" data-lon="87.5">Bay of Bengal</button>
+              <button class="btn-chip" data-lat="15.5" data-lon="65.0">Arabian Sea</button>
+              <button class="btn-chip" data-lat="10.0" data-lon="74.5">Lakshadweep Sea</button>
+              <button class="btn-chip" data-lat="11.5" data-lon="94.0">Andaman Sea</button>
+              <button class="btn-chip" data-lat="5.5" data-lon="80.0">Equatorial IO</button>
+              <button class="btn-chip" data-lat="21.5" data-lon="68.0">Gujarat Shelf</button>
+            </div>
+          </div>
+
+          <!-- Map Layer Toolbar -->
+          <div class="gmaps-toolbar" id="gmaps-toolbar">
+            <div class="map-types">
+              <span class="toolbar-label">Map View:</span>
+              <div class="map-type-buttons">
+                <button class="btn-layer active" data-type="roadmap" id="btn-layer-roadmap" title="Roadmap / Nautical Plan">🗺️ Roadmap</button>
+                <button class="btn-layer" data-type="satellite" id="btn-layer-satellite" title="Photorealistic Satellite">🛰️ Satellite</button>
+                <button class="btn-layer" data-type="hybrid" id="btn-layer-hybrid" title="Hybrid (Satellite + Borders)">🌐 Hybrid</button>
+                <button class="btn-layer" data-type="terrain" id="btn-layer-terrain" title="Bathymetry / Terrain">🏔️ Terrain</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 2D Map Wrapper with Depth Slider Overlay -->
+          <div class="map-wrapper" id="explorer-display-wrapper">
+            <!-- 2D Spatial Map -->
+            <div id="indian-ocean-map"></div>
+            
+            <!-- Vertical Depth Slider on Map -->
+            <div class="depth-slider-container">
+              <span class="slider-title">Depth Slider</span>
+              <div class="slider-track-wrap">
+                <input type="range" id="depth-range-slider" min="0" max="14" value="0" step="1" orient="vertical" />
+              </div>
+              <span class="slider-current-depth" id="slider-depth-badge">0m (Surface)</span>
+            </div>
+
+            <div class="map-hint-overlay" id="map-hint-overlay">
+              <span>💡 Click anywhere on ocean to pin coordinates &bull; Vertical slider selects subsurface depth level</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Depth Temp Panel (matching sketch 2) -->
+        <div class="card depth-temp-card">
+          <div class="card-header">
+            <h3 class="card-title">Depth Temperature</h3>
+            <div class="unit-selector">
+              <label for="temp-unit-select" class="unit-label">Unit:</label>
+              <select id="temp-unit-select" class="unit-dropdown">
+                <option value="C" selected>&deg;C (Celsius)</option>
+                <option value="K">K (Kelvin)</option>
+                <option value="F">&deg;F (Fahrenheit)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Selected Depth Big Readout -->
+          <div class="depth-readout-box">
+            <div class="readout-header">
+              <span class="readout-label" id="readout-depth-label">TEMPERATURE AT 0 M</span>
+              <span class="readout-layer-badge" id="readout-layer-badge">Surface Mixed Layer</span>
+            </div>
+            <div class="readout-value-row">
+              <span class="readout-number" id="readout-temp-value">29.2</span>
+              <span class="readout-unit" id="readout-temp-unit">&deg;C</span>
+            </div>
+            <div class="readout-timestamp" id="readout-timestamp">
+              <span class="time-clock-icon">🕒</span>
+              <span id="readout-timestamp-text">Observed: 13 Sep 2026, 12:00 UTC (17:30 IST) &bull; Cycle: 12Z</span>
+            </div>
+            <div class="readout-sub" id="readout-sub-text">
+              Normal range: 27.5&deg;C &ndash; 30.5&deg;C &bull; SLA: +0.04m
+            </div>
+          </div>
+
+          <!-- Vertical Water Column Depth Highlight Gauge (ALL 15 DEPTHS VISIBLE WITHOUT SCROLL) -->
+          <div class="water-column-gauge">
+            <div class="gauge-header">
+              <span>Vertical Water Column Profile (All 15 Depths)</span>
+              <span class="gauge-hint">Click level to select</span>
+            </div>
+            <div class="depth-bars-list full-depth-list" id="depth-bars-list">
+              <!-- Rendered dynamically by app.js: 0m to 1000m all fit cleanly -->
+            </div>
+          </div>
+
+          <!-- Key Hydrographic Indicators -->
+          <div class="diagnostics-grid">
+            <div class="diag-card">
+              <span class="diag-label">D<sub>20</sub> Thermocline</span>
+              <span class="diag-val" id="diag-d20">98 m</span>
+            </div>
+            <div class="diag-card">
+              <span class="diag-label">Mixed Layer (MLD)</span>
+              <span class="diag-val" id="diag-mld">30 m</span>
+            </div>
+            <div class="diag-card">
+              <span class="diag-label">D<sub>26</sub> Cyclone TCHP</span>
+              <span class="diag-val" id="diag-d26">55 m</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Dedicated Standalone Box: 3D Realistic Sea & Depth-Wise Subsurface Temperature Representation -->
+        <div class="card sim-3d-ocean-card" id="card-3d-ocean">
+          <div class="card-header">
+            <div class="header-left">
+              <div class="badge-3d-tag">3D REALISTIC WEBGL MODEL</div>
+              <h3 class="card-title">Realistic 3D Sea &amp; Volumetric Subsurface Temperature Model</h3>
+              <span class="sim-3d-subtitle">Dynamic undulating physical ocean waves (top) &bull; 0 to 1000m depth-wise thermal stratification (below)</span>
+            </div>
+            <div class="header-right header-3d-controls">
+              <div class="slice-readout-chip" id="3d-slice-depth-badge">
+                <span class="badge-icon">📐</span> Slicing Depth: <strong id="3d-slice-depth-val">0m (Surface &bull; 29.2&deg;C)</strong>
+              </div>
+              <div class="coord-indicator-chip" id="3d-coord-badge">
+                <span class="badge-icon">📍</span> <span id="3d-coord-val">[14.00&deg;N, 87.50&deg;E] &bull; Bay of Bengal</span>
+              </div>
+              <div class="btn-group-3d-modes">
+                <button class="btn-3d-mode active" data-mode="cutaway" id="btn-mode-cutaway" title="Moving Sea & Subsurface Temperature">🌊 Moving Sea &amp; Temperature</button>
+                <button class="btn-3d-mode" data-mode="slice" id="btn-mode-slice" title="Interactive Subsurface Depth Slice">🔬 Depth Slice Plane</button>
+                <button class="btn-3d-mode" data-mode="strata" id="btn-mode-strata" title="15 Exploded Thermal Layers">📊 15 Thermal Strata</button>
+              </div>
+              <button class="btn-3d-action active" id="btn-toggle-orbit" title="Toggle Cinematic Auto Orbit">
+                ⏸️ Orbit Active
+              </button>
+              <button class="btn-reset-3d-cam" id="btn-reset-3d-cam" title="Reset 3D Camera Orientation">
+                🔄 Reset View
+              </button>
+            </div>
+          </div>
+
+          <!-- 3D Realistic Sea Viewport with Dynamic Water and Stratification -->
+          <div class="sim-3d-viewport-container">
+            <div id="three-realistic-ocean-canvas" class="three-realistic-ocean-canvas"></div>
+            
+            <!-- Floating HUD telemetry overlay -->
+            <div class="sim-3d-hud-overlay">
+              <div class="hud-top-metrics">
+                <div class="hud-metric-pill">
+                  <span class="hud-dot dot-surface"></span>
+                  <span>Sea Surface: <strong>Dynamic Moving Waves (0.5m swell)</strong></span>
+                </div>
+                <div class="hud-metric-pill">
+                  <span class="hud-dot dot-mixed"></span>
+                  <span>Subsurface 0&ndash;30m: <strong id="3d-hud-mld">Warm Mixed Layer (~28.5&deg;C)</strong></span>
+                </div>
+                <div class="hud-metric-pill">
+                  <span class="hud-dot dot-thermo"></span>
+                  <span>Subsurface 100m: <strong id="3d-hud-d20">D&#8322;&#8320; Thermocline (~20.1&deg;C)</strong></span>
+                </div>
+                <div class="hud-metric-pill">
+                  <span class="hud-dot dot-abyss"></span>
+                  <span>Subsurface 1000m: <strong>Abyssal Bed (~7.4&deg;C)</strong></span>
+                </div>
+              </div>
+
+              <div class="hud-bottom-row">
+                <div class="sim-control-hint">
+                  <span>🖱️ Left Drag: Orbit 3D Sea &bull; Right Drag: Pan &bull; Wheel: Zoom &bull; Slider / Water Column: Slice Depth</span>
+                </div>
+                <div class="sim-3d-thermal-scale">
+                  <div class="scale-header">
+                    <span class="scale-lbl">Realistic Depth-Wise Temperature Scale</span>
+                    <span class="scale-range">31&deg;C &rarr; 7&deg;C</span>
+                  </div>
+                  <div class="scale-bar"></div>
+                  <div class="scale-ticks">
+                    <span>31&deg;C (Surface)</span>
+                    <span>26&deg;C (D&#8322;&#8326;)</span>
+                    <span>20&deg;C (D&#8322;&#8320;)</span>
+                    <span>14&deg;C (Sub-therm)</span>
+                    <span>7&deg;C (Abyss 1000m)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom: Overall Monthly / Time-Series Temperature (matching sketch 2) -->
+        <div class="card timeseries-card">
+          <div class="card-header">
+            <div class="header-left">
+              <h3 class="card-title">Overall Monthly Temperature Cycle</h3>
+              <span class="timeseries-sub" id="timeseries-location-title">Stationary Seasonal Cycle at [14.00&deg;N, 87.50&deg;E]</span>
+            </div>
+            <div class="header-actions">
+              <div class="depth-filter-chips">
+                <button class="filter-chip active" data-ts-depth="surface">Surface (0m)</button>
+                <button class="filter-chip" data-ts-depth="100m">Thermocline (100m)</button>
+                <button class="filter-chip" data-ts-depth="500m">Deep Abyss (500m)</button>
+              </div>
+              <button class="btn btn-outline-sm" id="btn-export-csv">
+                📥 Export CSV
+              </button>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="monthly-temp-chart"></canvas>
+          </div>
+        </div>
+
+      </div>
+      
+      <!-- Printable Publication Report Footer (Visible strictly during Print/PDF Export) -->
+      <div class="print-report-footer" aria-hidden="true">
+        <span>&copy; 2026 RawMatrix-OceanEmbed • INCOIS &amp; MoES Satellite Subsurface Intelligence</span>
+        <span>Standard: NetCDF CF-1.8 Compliant • Generated: Operational Evaluation Epoch</span>
+        <span>Page 2 of 2</span>
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- TAB 3: TRANSECT & EXPLAINABILITY (Hand sketch 1) -->
+    <!-- ================================================================= -->
+    <section class="tab-content" id="tab-transect">
+      <div class="transect-grid">
+        
+        <!-- Top Left: 2D Heatmap Slice (matching sketch 1) -->
+        <div class="card heatmap-slice-card">
+          <div class="card-header">
+            <div class="header-left">
+              <h3 class="card-title">2D Heatmap Slice (Vertical Transect)</h3>
+              <span class="transect-coord-label">Latitude Transect: 14.0&deg;N (Arabian Sea to Bay of Bengal, 48&deg;E &ndash; 98&deg;E)</span>
+            </div>
+            <div class="colormap-legend">
+              <span>Cold (7&deg;C)</span>
+              <div class="gradient-bar"></div>
+              <span>Warm (30&deg;C)</span>
+            </div>
+          </div>
+          <div class="heatmap-canvas-container">
+            <canvas id="transect-canvas" width="620" height="260"></canvas>
+            <div class="heatmap-axis-y">
+              <span>0m</span>
+              <span>100m</span>
+              <span>300m</span>
+              <span>500m</span>
+              <span>1000m</span>
+            </div>
+            <div class="heatmap-axis-x">
+              <span>48&deg;E (West)</span>
+              <span>65&deg;E (Arabian Sea)</span>
+              <span>78&deg;E (India Tip)</span>
+              <span>88&deg;E (Bay of Bengal)</span>
+              <span>98&deg;E (East)</span>
+            </div>
+          </div>
+          <div class="card-footer-note">
+            <span>Thermal inversion and thermocline depth visible across longitude cross-section.</span>
+          </div>
+        </div>
+
+        <!-- Top Middle: Temperature vs Depth Profile (matching sketch 1) -->
+        <div class="card profile-curve-card">
+          <div class="card-header">
+            <h3 class="card-title">Temperature Profile</h3>
+            <span class="profile-depth-tag">Depth (0 &ndash; 1000m)</span>
+          </div>
+          <div class="chart-wrapper profile-chart-wrap">
+            <canvas id="vertical-profile-chart"></canvas>
+          </div>
+          <div class="card-footer-note">
+            <span>Comparison: <strong style="color:var(--accent-teal);">OceanEmbed Predicted</strong> vs <strong style="color:#ff7043;">ARGO Float In-Situ Validated</strong> (15 standard depths).</span>
+          </div>
+        </div>
+
+        <!-- Top Right: Operational Validation Gauges (matching sketch 1) -->
+        <div class="card metrics-gauge-card">
+          <div class="card-header">
+            <h3 class="card-title">Operational Validation Metrics</h3>
+            <span class="badge-tag">INCOIS Standard</span>
+          </div>
+          <div class="gauges-container">
+            
+            <!-- Gauge 1: Correlation -->
+            <div class="gauge-item">
+              <span class="gauge-label">Correlation Skill (r)</span>
+              <div class="semi-circle-gauge">
+                <svg viewBox="0 0 120 70" class="gauge-svg">
+                  <path d="M 15 60 A 45 45 0 0 1 105 60" fill="none" stroke="var(--gauge-track)" stroke-width="10"/>
+                  <path d="M 15 60 A 45 45 0 0 1 98 25" fill="none" stroke="var(--accent-teal)" stroke-width="10" stroke-linecap="round"/>
+                </svg>
+                <div class="gauge-val-center">
+                  <span class="gauge-num">0.913</span>
+                  <span class="gauge-grade">HIGH SKILL</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gauge 2: RMSE -->
+            <div class="gauge-item">
+              <span class="gauge-label">Mean Water Column RMSE</span>
+              <div class="linear-gauge-wrap">
+                <div class="linear-gauge-bar">
+                  <div class="gauge-fill-green" style="width: 67%;"></div>
+                  <div class="target-marker" title="Mandate: < 1.0°C"></div>
+                </div>
+                <div class="gauge-sub-row">
+                  <span class="gauge-score">0.669 &deg;C</span>
+                  <span class="gauge-target">Target: &lt; 1.0 &deg;C</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Gauge 3: Bias Meter -->
+            <div class="gauge-item">
+              <span class="gauge-label">Mean Systematic Bias</span>
+              <div class="bias-meter-wrap">
+                <div class="bias-track">
+                  <div class="bias-center-line"></div>
+                  <div class="bias-needle" style="left: 46%;"></div>
+                </div>
+                <div class="bias-labels-row">
+                  <span>Cold Bias (-0.5&deg;)</span>
+                  <strong class="bias-val-text">-0.078 &deg;C</strong>
+                  <span>Warm Bias (+0.5&deg;)</span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Bottom Left: Explainability Relative Contribution (matching sketch 1) -->
+        <div class="card explainability-card">
+          <div class="card-header">
+            <div class="header-left">
+              <h3 class="card-title">Feature Explainability</h3>
+              <span class="explainability-sub">Relative Contribution (%) of Satellite Inputs Across Depths</span>
+            </div>
+            <div class="explainability-legend">
+              <span class="leg-item leg-sst">&bull; SST</span>
+              <span class="leg-item leg-sss">&bull; SSS</span>
+              <span class="leg-item leg-sla">&bull; SLA</span>
+              <span class="leg-item leg-cur">&bull; Currents</span>
+              <span class="leg-item leg-wnd">&bull; Winds</span>
+            </div>
+          </div>
+          <div class="chart-wrapper">
+            <canvas id="explainability-chart"></canvas>
+          </div>
+        </div>
+
+        <!-- Bottom Right: Explainability Data Table (matching sketch 1) -->
+        <div class="card explain-table-card">
+          <div class="card-header">
+            <h3 class="card-title">Data Table (%)</h3>
+            <span class="badge-tag">Layer Weights</span>
+          </div>
+          <div class="table-container-full">
+            <table class="data-table" id="attribution-data-table">
+              <thead>
+                <tr>
+                  <th>Depth (m)</th>
+                  <th>SST (%)</th>
+                  <th>SSS (%)</th>
+                  <th>SLA (%)</th>
+                  <th>Currents (%)</th>
+                  <th>Winds (%)</th>
+                </tr>
+              </thead>
+              <tbody id="attribution-table-body">
+                <!-- Injected dynamically by app.js -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================================================================= -->
+    <!-- TAB 4: AI VALIDATION & METRICS -->
+    <!-- ================================================================= -->
+    <section class="tab-content" id="tab-metrics">
+      <div class="metrics-grid">
+        
+        <!-- Summary Cards -->
+        <div class="metrics-summary-row">
+          <div class="eval-stat-card">
+            <span class="eval-stat-title">Test Dataset Points</span>
+            <span class="eval-stat-val">21,217,828</span>
+            <span class="eval-stat-sub">134 Independent Days (2008&ndash;2009)</span>
+          </div>
+          <div class="eval-stat-card">
+            <span class="eval-stat-title">5-Class Water Mass Accuracy</span>
+            <span class="eval-stat-val">90.76%</span>
+            <span class="eval-stat-sub">Weighted F1-Score: 0.9069</span>
+          </div>
+          <div class="eval-stat-card">
+            <span class="eval-stat-title">20&deg;C Thermocline Boundary F1</span>
+            <span class="eval-stat-val">0.9806</span>
+            <span class="eval-stat-sub">Binary Accuracy: 97.67%</span>
+          </div>
+          <div class="eval-stat-card">
+            <span class="eval-stat-title">Marine Heatwave Anomaly F1</span>
+            <span class="eval-stat-val">0.8319</span>
+            <span class="eval-stat-sub">Threshold: &Delta;T &gt; +1.0&deg;C</span>
+          </div>
+        </div>
+
+        <!-- Confusion Matrix Visuals -->
+        <div class="card cm-card">
+          <div class="card-header">
+            <h3 class="card-title">Ocean Thermal Water Masses: 5x5 Confusion Matrix (0&ndash;1000m)</h3>
+            <span class="badge-tag">21.2M Evaluated Points</span>
+          </div>
+          <div class="cm-layout">
+            <div class="cm-image-wrap">
+              <img src="assets/confusion_matrix_thermal_classes.png" alt="Thermal Water Mass Confusion Matrix" class="cm-img" />
+            </div>
+            <div class="cm-text-details">
+              <h4>Classification Highlights</h4>
+              <p>Evaluating continuous temperature predictions against physical ocean thermal classes:</p>
+              <ul class="cm-stats-list">
+                <li><strong>Abyssal Abyss (&lt;12&deg;C):</strong> F1 = <strong>0.9671</strong> (Precision: 97.1%, Recall: 96.3%)</li>
+                <li><strong>Sub-Thermocline (12&ndash;18&deg;C):</strong> F1 = <strong>0.8997</strong> (Precision: 91.0%, Recall: 88.9%)</li>
+                <li><strong>Lower Thermocline (18&ndash;22&deg;C):</strong> F1 = <strong>0.7900</strong> (Precision: 79.2%, Recall: 78.8%)</li>
+                <li><strong>Upper Thermocline (22&ndash;26&deg;C):</strong> F1 = <strong>0.7900</strong> (Precision: 80.9%, Recall: 77.2%)</li>
+                <li><strong>Mixed Layer (&gt;26&deg;C):</strong> F1 = <strong>0.9558</strong> (Precision: 94.1%, Recall: 97.1%)</li>
+              </ul>
+              <div class="alert-box">
+                <span class="alert-icon">ℹ️</span>
+                <span>Errors are strictly confined to adjacent temperature brackets, confirming that the model never makes unphysical thermal jumps.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 20C Boundary and Depth Verification Table (NO SCROLL, ALL 15 DEPTHS CLEANLY DISPLAYED) -->
+        <div class="metrics-split-row">
+          
+          <div class="card cm-half-card">
+            <div class="card-header">
+              <h3 class="card-title">20&deg;C Thermocline Boundary ($D_{20}$)</h3>
+              <span class="badge-tag">Binary Classification</span>
+            </div>
+            <div class="cm-image-wrap half-img-wrap">
+              <img src="assets/confusion_matrix_20c_boundary.png" alt="20C Thermocline Boundary Confusion Matrix" class="cm-img" />
+            </div>
+            <div class="metric-key-stats">
+              <div class="key-stat"><span>True Negatives:</span> <strong>8,243,746</strong></div>
+              <div class="key-stat"><span>True Positives:</span> <strong>12,480,623</strong></div>
+              <div class="key-stat"><span>False Negatives:</span> <strong>199,055</strong></div>
+              <div class="key-stat"><span>False Positives:</span> <strong>294,404</strong></div>
+            </div>
+          </div>
+
+          <!-- FIXED DEPTH-WISE VERIFICATION TABLE: Shows all 15 depths completely without scroll cutoff or empty box -->
+          <div class="card depth-table-card full-view-table-card">
+            <div class="card-header">
+              <h3 class="card-title">Depth-Wise Verification Table (Test Set)</h3>
+              <span class="badge-tag">All 15 Standard Depths</span>
+            </div>
+            <div class="table-container-full">
+              <table class="data-table clean-depth-table" id="depth-metrics-table">
+                <thead>
+                  <tr>
+                    <th>Depth (m)</th>
+                    <th>Mean Temp</th>
+                    <th>Std Dev (&sigma;)</th>
+                    <th>RMSE (&deg;C)</th>
+                    <th>Correlation (r)</th>
+                    <th>Skill Status</th>
+                  </tr>
+                </thead>
+                <tbody id="depth-metrics-body">
+                  <!-- Injected dynamically by app.js: all 15 depths cleanly visible without scroll -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <span>&copy; 2026 RawMatrix-OceanEmbed. Operational Subsurface Ocean Temperature Platform.</span>
+        <span class="footer-sub">Deep-Learning Spatial-Temporal Inference from Satellite Multi-Mission Observations.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Land Detection Warning Popup Modal -->
+  <div class="land-warning-overlay" id="land-warning-modal" aria-hidden="true">
+    <div class="land-warning-card" role="dialog" aria-modal="true" aria-labelledby="land-warning-title">
+      <div class="warning-badge-pill">
+        <span class="warning-pulse-dot"></span>
+        <span>TERRESTRIAL SURFACE DETECTED</span>
+      </div>
+      <div class="warning-body">
+        <div class="warning-icon-ring">
+          <span class="warning-main-icon">⚠️</span>
+        </div>
+        <div class="warning-text-block">
+          <h3 class="warning-title" id="land-warning-title">Invalid Marine Coordinate</h3>
+          <p class="warning-primary-prompt" id="land-warning-msg">Click on the ocean or select correct place</p>
+          <p class="warning-description">
+            Selected coordinate <strong class="coord-tag-amber" id="land-warning-coords">[20.00°N, 78.00°E]</strong> is located on land or outside marine waters. Ocean subsurface temperature and heat content measurements cannot be calculated on land surfaces.
+          </p>
+          <div class="warning-suggestions">
+            <span class="suggestions-label">Quick Ocean Basins:</span>
+            <div class="warning-basin-chips">
+              <button class="btn-warn-basin" data-lat="14.0" data-lon="87.5">🌊 Bay of Bengal (14°N, 87.5°E)</button>
+              <button class="btn-warn-basin" data-lat="15.5" data-lon="65.0">🌊 Arabian Sea (15.5°N, 65°E)</button>
+              <button class="btn-warn-basin" data-lat="5.5" data-lon="80.0">🌊 Equatorial IO (5.5°N, 80°E)</button>
+              <button class="btn-warn-basin" data-lat="10.0" data-lon="72.5">🌊 Lakshadweep (10°N, 72.5°E)</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="warning-footer">
+        <button class="btn-dismiss-warning" id="btn-dismiss-land-warning" type="button">Understood • Select Ocean Basin</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts: Three.js for 3D simulation, Leaflet for mapping, Chart.js for graphs -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="js/app.js?v=argo_curve_v12"></script>
+</body>
+</html>

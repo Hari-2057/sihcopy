@@ -106,6 +106,19 @@ class OceanEmbedDataset(Dataset):
 
         self.aux = self._build_aux()
         self.n_days = self.X.shape[0]
+        self.X_all = np.concatenate([self.X, self.aux], axis=1)
+        del self.X, self.aux
+
+        self._valid_windows = []
+        if self.patch:
+            n_lat, n_lon = self.mask.shape
+            p = self.patch
+            for i in range(n_lat - p + 1):
+                for j in range(n_lon - p + 1):
+                    if self.mask[i:i + p, j:j + p].mean() >= self.min_ocean:
+                        self._valid_windows.append((i, j))
+            if not self._valid_windows:
+                self._valid_windows = [(0, 0)]
 
     # ------------------------------------------------------------------
     def _build_aux(self) -> np.ndarray:
@@ -137,7 +150,7 @@ class OceanEmbedDataset(Dataset):
 
     @property
     def in_channels(self) -> int:
-        return self.X.shape[1] + self.aux.shape[1]
+        return self.X_all.shape[1]
 
     def __len__(self) -> int:
         return self.n_days * self.samples_per_day
@@ -146,7 +159,7 @@ class OceanEmbedDataset(Dataset):
     def __getitem__(self, index: int) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         day = index // self.samples_per_day
 
-        x = np.concatenate([self.X[day], self.aux[day]], axis=0)
+        x = self.X_all[day]
         y = self.Y[day]
         v = self.valid[day]
 
@@ -162,31 +175,9 @@ class OceanEmbedDataset(Dataset):
                torch.from_numpy(np.ascontiguousarray(v))
 
     def _pick_window(self, index: int, day: int) -> tuple[int, int]:
-        """A random window with enough ocean in it.
-
-        Seeded from the sample index so an epoch is reproducible, while still
-        giving a different crop every time that day comes round.
-        """
-        n_lat, n_lon = self.mask.shape
-        p = self.patch
-        rng = np.random.default_rng(self.seed * 1_000_003 + index)
-
-        for _ in range(20):
-            i = int(rng.integers(0, n_lat - p + 1))
-            j = int(rng.integers(0, n_lon - p + 1))
-            if self.mask[i:i + p, j:j + p].mean() >= self.min_ocean:
-                return i, j
-
-        # Nothing suitable found; fall back to the wettest window we can get
-        # cheaply rather than returning an all-land patch.
-        best, best_frac = (0, 0), -1.0
-        for _ in range(20):
-            i = int(rng.integers(0, n_lat - p + 1))
-            j = int(rng.integers(0, n_lon - p + 1))
-            frac = float(self.mask[i:i + p, j:j + p].mean())
-            if frac > best_frac:
-                best, best_frac = (i, j), frac
-        return best
+        """A random window with enough ocean in it from precomputed valid pool."""
+        idx = ((self.seed * 1_000_003 + index) * 1103515245 + 12345) % len(self._valid_windows)
+        return self._valid_windows[idx]
 
     # ------------------------------------------------------------------
     def depth_std(self) -> np.ndarray:

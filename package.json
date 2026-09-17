@@ -1,0 +1,15 @@
+{
+  "name": "oceanembed-platform",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "echo 'Static web ready in web/'",
+    "dev": "python3 server.py"
+  },
+  "dependencies": {
+    "clsx": "^2.1.1",
+    "lil-gui": "^0.21.0",
+    "lucide-react": "^1.46.0",
+    "tailwind-merge": "^3.7.0",
+    "vgpu": "^0.5.0"
+  }
+}

@@ -219,6 +219,18 @@ def train(cfg: TrainConfig) -> Path:
         else:
             stale += 1
 
+        # Save milestone checkpoints for requested epoch comparisons
+        milestones = {5, 10, 15, 20, 25, 28, 30, 35, 40, 50, 60}
+        curr_ep = epoch + 1
+        if curr_ep in milestones:
+            torch.save(
+                {"model": model.state_dict(), "config": asdict(cfg),
+                 "epoch": epoch, "completed_epochs": curr_ep, "val_loss": val["loss"],
+                 "depths": train_ds.depths, "variables": train_ds.variables},
+                run_dir / f"checkpoint_epoch_{curr_ep}.pt",
+            )
+            flag += f"  [saved ep{curr_ep}]"
+
         line = (f"epoch {epoch:>3}  lr {lr:.2e}  train {train_loss:.4f}  "
                 f"val {val['loss']:.4f}")
         if "rmse_c" in val:

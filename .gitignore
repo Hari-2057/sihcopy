@@ -1,6 +1,18 @@
+# Environments and dependencies
 .env
-# data/
-# reports/
+.venv/
+node_modules/
+.vercel/
+.DS_Store
 __pycache__/
 *.pyc
-.venv/
+
+# Heavy training datasets (27GB) and model checkpoints
+/data/
+!/web/data/
+/runs/
+*.nc
+*.pt
+*.pth
+*.tar.gz
+*.zip
