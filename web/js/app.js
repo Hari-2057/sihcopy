@@ -23,6 +23,7 @@
   let selectedHour = 12;
   let selectedMinute = 0;
   let selectedTime = '12:00';
+  let currentViewMode = 'validation'; // 'validation' (2008-2009 benchmark) | 'latest' (2018 cached)
   let isPlaybackPlaying = false;
   let playbackIntervalId = null;
 
@@ -152,6 +153,7 @@
   let monthlyChart = null;
   let verticalProfileChart = null;
   let explainabilityChart = null;
+  let depthTrendChartInstance = null;
 
   const DEPTHS = [0, 5, 10, 20, 30, 50, 75, 100, 125, 150, 200, 300, 500, 700, 1000];
 
@@ -188,6 +190,7 @@
     setupThemeSystem();
     initLiveClock();
     setupTemporalControls();
+    setupViewStateSwitcher();
 
     try {
       const res = await fetch('data/ocean_data.json');
@@ -206,6 +209,10 @@
     try { setupProfileChart(); } catch (e) { console.error('Error in setupProfileChart:', e); }
     try { setupExplainability(); } catch (e) { console.error('Error in setupExplainability:', e); }
     try { setupValidationTable(); } catch (e) { console.error('Error in setupValidationTable:', e); }
+    try { setupProgressiveDisclosures(); } catch (e) { console.error('Error in setupProgressiveDisclosures:', e); }
+    try { setupValidationSubTabs(); } catch (e) { console.error('Error in setupValidationSubTabs:', e); }
+    try { initDepthErrorTrendChart(); } catch (e) { console.error('Error in initDepthErrorTrendChart:', e); }
+    try { setupAccessibleTooltips(); } catch (e) { console.error('Error in setupAccessibleTooltips:', e); }
     try { setupExportActions(); } catch (e) { console.error('Error in setupExportActions:', e); }
     try { setupLandWarningModal(); } catch (e) { console.error('Error in setupLandWarningModal:', e); }
 
@@ -298,7 +305,7 @@
     const gridColor = currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.06)' : 'rgba(0, 0, 0, 0.08)';
     const textColor = currentTheme === 'dark' ? '#94a8b3' : '#456470';
 
-    [monthlyChart, verticalProfileChart, explainabilityChart].forEach(chart => {
+    [monthlyChart, verticalProfileChart, explainabilityChart, depthTrendChartInstance].forEach(chart => {
       if (!chart) return;
       if (chart.options.scales.x) {
         chart.options.scales.x.grid.color = gridColor;
@@ -310,6 +317,9 @@
         if (chart.options.scales.y.title) {
           chart.options.scales.y.title.color = textColor;
         }
+      }
+      if (chart.options.scales['y-corr']) {
+        chart.options.scales['y-corr'].grid.color = gridColor;
       }
       if (chart.options.plugins && chart.options.plugins.legend && chart.options.plugins.legend.labels) {
         chart.options.plugins.legend.labels.color = textColor;
@@ -354,6 +364,11 @@
           if (explainabilityChart) explainabilityChart.resize();
         }, 150);
       }
+      if (tabId === 'tab-metrics') {
+        setTimeout(() => {
+          if (depthTrendChartInstance) depthTrendChartInstance.resize();
+        }, 150);
+      }
     }
 
     tabs.forEach(tab => {
@@ -362,10 +377,8 @@
 
     const btnHeroExplore = document.getElementById('btn-hero-explore');
     if (btnHeroExplore) btnHeroExplore.addEventListener('click', () => switchTab('tab-explorer'));
-
     const btnHeroTransect = document.getElementById('btn-hero-transect');
     if (btnHeroTransect) btnHeroTransect.addEventListener('click', () => switchTab('tab-transect'));
-
     const btnBannerExplore = document.getElementById('btn-banner-explore');
     if (btnBannerExplore) btnBannerExplore.addEventListener('click', () => switchTab('tab-explorer'));
   }
@@ -1225,23 +1238,22 @@
   function setupTemporalControls() {
     const dateInput = document.getElementById('explorer-date-input');
     const timeInput = document.getElementById('explorer-time-input');
-    const cycleChips = document.querySelectorAll('.cycle-chip:not(.btn-live-now)');
-    const liveBtn = document.getElementById('btn-temporal-live');
+    const cycleChips = document.querySelectorAll('.cycle-chip:not(.btn-epoch-preset)');
+    const epochPresetBtn = document.getElementById('btn-temporal-live');
 
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const maxDateStr = '2018-12-31';
 
     if (dateInput) {
-      dateInput.max = todayStr;
+      dateInput.max = maxDateStr;
       dateInput.min = '1994-06-01';
       dateInput.value = selectedDate;
 
       dateInput.addEventListener('change', (e) => {
         let val = e.target.value;
-        if (!val) val = '2008-09-15';
-        if (val > todayStr) {
-          val = todayStr;
-          dateInput.value = todayStr;
+        if (!val) val = currentViewMode === 'latest' ? '2018-10-15' : '2008-09-15';
+        if (val > maxDateStr) {
+          val = maxDateStr;
+          dateInput.value = maxDateStr;
         }
         if (val < '1994-06-01') {
           val = '1994-06-01';
@@ -1269,7 +1281,6 @@
       chip.addEventListener('click', () => {
         cycleChips.forEach(c => c.classList.remove('active'));
         chip.classList.add('active');
-        if (liveBtn) liveBtn.classList.remove('active');
 
         const [h, m] = chip.dataset.time.split(':').map(Number);
         selectedHour = h;
@@ -1281,22 +1292,13 @@
       });
     });
 
-    if (liveBtn) {
-      liveBtn.addEventListener('click', () => {
-        const cur = new Date();
-        const y = cur.getFullYear();
-        const m = String(cur.getMonth() + 1).padStart(2, '0');
-        const d = String(cur.getDate()).padStart(2, '0');
-        selectedDate = `${y}-${m}-${d}`;
-        selectedHour = cur.getHours();
-        selectedMinute = cur.getMinutes();
-
-        if (dateInput) dateInput.value = selectedDate;
-        if (timeInput) timeInput.value = `${String(selectedHour).padStart(2, '0')}:${String(selectedMinute).padStart(2, '0')}`;
-        
-        cycleChips.forEach(c => c.classList.remove('active'));
-        liveBtn.classList.add('active');
-        handleTemporalChange();
+    if (epochPresetBtn) {
+      epochPresetBtn.addEventListener('click', () => {
+        if (currentViewMode === 'validation') {
+          setDatasetViewMode('latest');
+        } else {
+          setDatasetViewMode('validation');
+        }
       });
     }
 
@@ -1305,8 +1307,7 @@
 
   function updateCycleChipsActive() {
     const timeStr = `${String(selectedHour).padStart(2, '0')}:00`;
-    const cycleChips = document.querySelectorAll('.cycle-chip:not(.btn-live-now)');
-    const liveBtn = document.getElementById('btn-temporal-live');
+    const cycleChips = document.querySelectorAll('.cycle-chip:not(.btn-epoch-preset)');
     let matched = false;
     cycleChips.forEach(chip => {
       if (chip.dataset.time === timeStr && selectedMinute === 0) {
@@ -1316,9 +1317,6 @@
         chip.classList.remove('active');
       }
     });
-    if (!matched && liveBtn) {
-      liveBtn.classList.remove('active');
-    }
   }
 
   function handleTemporalChange() {
@@ -1330,9 +1328,9 @@
   function updateTemporalDisplay() {
     const d = new Date(selectedDate);
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    const dayStr = isNaN(d.getDate()) ? '13' : String(d.getDate()).padStart(2, '0');
+    const dayStr = isNaN(d.getDate()) ? '15' : String(d.getDate()).padStart(2, '0');
     const monthStr = isNaN(d.getMonth()) ? 'Sep' : months[d.getMonth()];
-    const yearStr = isNaN(d.getFullYear()) ? '2026' : d.getFullYear();
+    const yearStr = isNaN(d.getFullYear()) ? '2008' : d.getFullYear();
     const formattedDate = `${dayStr} ${monthStr} ${yearStr}`;
 
     const hourStr = String(selectedHour).padStart(2, '0');
@@ -1357,12 +1355,14 @@
 
     const badgeText = document.getElementById('temporal-badge-text');
     if (badgeText) {
-      badgeText.textContent = `${formattedDate} • ${utcTimeStr} (${istTimeStr})`;
+      const modeLabel = currentViewMode === 'latest' ? 'Cached Prediction' : 'Pre-computed Benchmark';
+      badgeText.textContent = `${formattedDate} • ${utcTimeStr} (${modeLabel})`;
     }
 
     const readoutTs = document.getElementById('readout-timestamp-text');
     if (readoutTs) {
-      readoutTs.textContent = `Observed: ${formattedDate}, ${utcTimeStr} (${istTimeStr}) • Cycle: ${cycle}`;
+      const modeDesc = currentViewMode === 'latest' ? 'Cached Prediction Cycle' : 'Pre-computed Benchmark Cycle';
+      readoutTs.textContent = `Epoch: ${formattedDate} • ${utcTimeStr} (${istTimeStr}) • ${modeDesc}: ${cycle}`;
     }
   }
 
@@ -2467,6 +2467,279 @@
         <td>${statusBadge}</td>
       `;
       tbody.appendChild(tr);
+    });
+  }
+
+  // =========================================================================
+  // Dataset View State Switcher: Validation Mode vs Latest Available
+  // =========================================================================
+  function setDatasetViewMode(mode) {
+    currentViewMode = mode;
+    const btnVal = document.getElementById('btn-state-validation');
+    const btnLatest = document.getElementById('btn-state-latest');
+    const bannerPill = document.getElementById('banner-mode-pill');
+    const bannerTitle = document.getElementById('banner-mode-title');
+    const bannerDesc = document.getElementById('banner-mode-desc');
+    const btnQuickSwitch = document.getElementById('btn-quick-switch-state');
+    const dateInput = document.getElementById('explorer-date-input');
+
+    if (mode === 'validation') {
+      selectedDate = '2008-09-15';
+      selectedHour = 12;
+      selectedMinute = 0;
+      if (btnVal) btnVal.classList.add('active');
+      if (btnLatest) btnLatest.classList.remove('active');
+      if (bannerPill) bannerPill.textContent = 'VALIDATION BENCHMARK MODE';
+      if (bannerTitle) bannerTitle.textContent = 'Historical Test-Set Evaluation Data (15 Sep 2008 • 12:00 UTC)';
+      if (bannerDesc) bannerDesc.textContent = 'Showing verified offline evaluation predictions against in-situ ARGO floats. Not live real-time satellite data.';
+      if (btnQuickSwitch) btnQuickSwitch.textContent = 'Switch to Latest Available (Oct 2018) →';
+    } else {
+      selectedDate = '2018-10-15';
+      selectedHour = 12;
+      selectedMinute = 0;
+      if (btnLatest) btnLatest.classList.add('active');
+      if (btnVal) btnVal.classList.remove('active');
+      if (bannerPill) bannerPill.textContent = 'LATEST CACHED PREDICTION';
+      if (bannerTitle) bannerTitle.textContent = 'Latest Available Cached Prediction (15 Oct 2018 • 12:00 UTC)';
+      if (bannerDesc) bannerDesc.textContent = 'Showing most recent pre-computed multi-mission satellite inference run. Pre-computed model output.';
+      if (btnQuickSwitch) btnQuickSwitch.textContent = 'Switch to Historical Benchmark (2008–09) →';
+    }
+
+    if (dateInput) dateInput.value = selectedDate;
+    updateTemporalDisplay();
+    handleTemporalChange();
+  }
+
+  function setupViewStateSwitcher() {
+    const btnVal = document.getElementById('btn-state-validation');
+    const btnLatest = document.getElementById('btn-state-latest');
+    const btnQuickSwitch = document.getElementById('btn-quick-switch-state');
+
+    if (btnVal) {
+      btnVal.addEventListener('click', () => setDatasetViewMode('validation'));
+    }
+    if (btnLatest) {
+      btnLatest.addEventListener('click', () => setDatasetViewMode('latest'));
+    }
+    if (btnQuickSwitch) {
+      btnQuickSwitch.addEventListener('click', () => {
+        setDatasetViewMode(currentViewMode === 'validation' ? 'latest' : 'validation');
+      });
+    }
+  }
+
+  // =========================================================================
+  // Progressive Disclosure: Collapsible Tables
+  // =========================================================================
+  function setupProgressiveDisclosures() {
+    // Attribution Table Drawer Toggle (Tab 3)
+    const btnAttr = document.getElementById('btn-toggle-attribution-table');
+    const drawerAttr = document.getElementById('attribution-table-drawer');
+    if (btnAttr && drawerAttr) {
+      btnAttr.addEventListener('click', () => {
+        const isOpen = drawerAttr.classList.toggle('open');
+        btnAttr.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        const textSpan = btnAttr.querySelector('.toggle-text');
+        if (textSpan) {
+          textSpan.textContent = isOpen
+            ? 'Hide detailed layer weights table'
+            : 'Show detailed layer weights table';
+        }
+      });
+    }
+
+    // Depth Metrics Table Drawer Toggle (Tab 4)
+    const btnDepth = document.getElementById('btn-toggle-depth-table');
+    const drawerDepth = document.getElementById('depth-table-drawer');
+    if (btnDepth && drawerDepth) {
+      btnDepth.addEventListener('click', () => {
+        const isOpen = drawerDepth.classList.toggle('open');
+        btnDepth.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        const textSpan = btnDepth.querySelector('.toggle-text');
+        if (textSpan) {
+          textSpan.textContent = isOpen
+            ? 'Hide detailed metrics table'
+            : 'Show detailed metrics table (All 15 standard depths)';
+        }
+      });
+    }
+  }
+
+  // =========================================================================
+  // AI Validation Sub-Tabs (Tab 4)
+  // =========================================================================
+  function setupValidationSubTabs() {
+    const pills = document.querySelectorAll('.subnav-pill');
+    const panes = document.querySelectorAll('.validation-subtab-pane');
+
+    pills.forEach(pill => {
+      pill.addEventListener('click', () => {
+        const targetId = pill.getAttribute('data-subtab');
+        if (!targetId) return;
+
+        pills.forEach(p => p.classList.remove('active'));
+        panes.forEach(pane => pane.classList.remove('active'));
+
+        pill.classList.add('active');
+        const targetPane = document.getElementById(targetId);
+        if (targetPane) {
+          targetPane.classList.add('active');
+          if (targetId === 'subtab-depth-metrics' && depthTrendChartInstance) {
+            depthTrendChartInstance.resize();
+          }
+        }
+      });
+    });
+  }
+
+  // =========================================================================
+  // Summary Depth Trend Chart: Depth vs RMSE & Correlation (Tab 4)
+  // =========================================================================
+  function initDepthErrorTrendChart() {
+    const canvas = document.getElementById('depth-error-trend-chart');
+    if (!canvas || !oceanData || !oceanData.ai_metrics) return;
+
+    const metrics = oceanData.ai_metrics.depth_metrics || [];
+    if (!metrics.length) return;
+
+    if (depthTrendChartInstance) {
+      depthTrendChartInstance.destroy();
+      depthTrendChartInstance = null;
+    }
+
+    const labels = metrics.map(m => `${m.depth}m`);
+    const corrData = metrics.map(m => m.corr);
+    const rmseData = metrics.map(m => m.rmse);
+
+    const isDark = currentTheme === 'dark';
+    const gridColor = isDark ? 'rgba(0, 229, 204, 0.08)' : 'rgba(0, 0, 0, 0.06)';
+    const textColor = isDark ? '#94a8b3' : '#456470';
+
+    depthTrendChartInstance = new Chart(canvas, {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: 'Pearson Correlation (r)',
+            data: corrData,
+            borderColor: '#00e5cc',
+            backgroundColor: 'rgba(0, 229, 204, 0.08)',
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#00e5cc',
+            yAxisID: 'y-corr',
+            tension: 0.3
+          },
+          {
+            label: 'RMSE (°C)',
+            data: rmseData,
+            borderColor: '#f43f5e',
+            backgroundColor: 'rgba(244, 63, 94, 0.08)',
+            borderWidth: 2.5,
+            pointRadius: 4,
+            pointHoverRadius: 6,
+            pointBackgroundColor: '#f43f5e',
+            yAxisID: 'y-rmse',
+            tension: 0.3
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: {
+          mode: 'index',
+          intersect: false
+        },
+        plugins: {
+          legend: {
+            display: false
+          },
+          tooltip: {
+            backgroundColor: isDark ? '#05141b' : '#ffffff',
+            titleColor: isDark ? '#ffffff' : '#0f172a',
+            bodyColor: isDark ? '#e2e8f0' : '#334155',
+            borderColor: '#00e5cc',
+            borderWidth: 1,
+            callbacks: {
+              label: function (ctx) {
+                if (ctx.dataset.yAxisID === 'y-corr') {
+                  return ` Correlation: ${ctx.parsed.y.toFixed(3)} (Skill: High)`;
+                } else {
+                  return ` RMSE: ${ctx.parsed.y.toFixed(3)} °C (Deviation)`;
+                }
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: 'Standard Vertical Depth (m)',
+              color: textColor,
+              font: { family: 'Inter', size: 11, weight: '600' }
+            },
+            grid: { color: gridColor },
+            ticks: { color: textColor, font: { family: 'JetBrains Mono', size: 9 } }
+          },
+          'y-corr': {
+            type: 'linear',
+            position: 'left',
+            min: 0.85,
+            max: 1.0,
+            title: {
+              display: true,
+              text: 'Pearson Correlation (r)',
+              color: '#00e5cc',
+              font: { family: 'Inter', size: 11, weight: '600' }
+            },
+            grid: { color: gridColor },
+            ticks: {
+              color: '#00e5cc',
+              font: { family: 'JetBrains Mono', size: 9 },
+              callback: (v) => v.toFixed(2)
+            }
+          },
+          'y-rmse': {
+            type: 'linear',
+            position: 'right',
+            min: 0.0,
+            max: 1.6,
+            title: {
+              display: true,
+              text: 'RMSE (°C)',
+              color: '#f43f5e',
+              font: { family: 'Inter', size: 11, weight: '600' }
+            },
+            grid: { drawOnChartArea: false },
+            ticks: {
+              color: '#f43f5e',
+              font: { family: 'JetBrains Mono', size: 9 },
+              callback: (v) => `${v.toFixed(1)}°C`
+            }
+          }
+        }
+      }
+    });
+  }
+
+  // =========================================================================
+  // Accessible Tooltips (Desktop & Mobile Tap)
+  // =========================================================================
+  function setupAccessibleTooltips() {
+    const tooltips = document.querySelectorAll('.term-tooltip');
+    tooltips.forEach(t => {
+      t.addEventListener('click', (e) => {
+        e.stopPropagation();
+        t.focus();
+      });
+    });
+
+    document.addEventListener('click', () => {
+      tooltips.forEach(t => t.blur());
     });
   }
 
