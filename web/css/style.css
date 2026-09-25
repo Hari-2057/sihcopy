@@ -2173,6 +2173,244 @@ button {
   min-width: 160px;
 }
 
+/* --------------------------------------------------------------------------
+   MAP MARKER & TEMPERATURE TOOLTIP BOX (Interactive Map Point Selection)
+   -------------------------------------------------------------------------- */
+.ocean-arrow-pin-wrap {
+  position: relative;
+  width: 32px;
+  height: 40px;
+  cursor: grab;
+  user-select: none;
+}
+
+.ocean-arrow-pin-wrap:active {
+  cursor: grabbing;
+}
+
+.ocean-arrow-pulse {
+  position: absolute;
+  bottom: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(0, 229, 204, 0.5);
+  animation: pinPulseRing 1.8s ease-out infinite;
+  pointer-events: none;
+}
+
+@keyframes pinPulseRing {
+  0% {
+    transform: translateX(-50%) scale(0.3);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(-50%) scale(1.8);
+    opacity: 0;
+  }
+}
+
+.ocean-arrow-svg {
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55));
+  transition: transform 0.15s ease;
+}
+
+.ocean-arrow-pin-wrap:hover .ocean-arrow-svg {
+  transform: translateY(-2px);
+}
+
+/* Leaflet Tooltip Container */
+.leaflet-tooltip.ocean-map-tooltip {
+  background: rgba(11, 23, 38, 0.94) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  border: 1.5px solid rgba(0, 229, 204, 0.55) !important;
+  border-radius: 12px !important;
+  padding: 10px 14px !important;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.55), 0 0 18px rgba(0, 229, 204, 0.3) !important;
+  color: #f8fafc !important;
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif !important;
+  pointer-events: none !important;
+  white-space: nowrap !important;
+  z-index: 1000 !important;
+  transition: transform 0.1s ease;
+}
+
+/* Tooltip Downward Arrow Pointer */
+.leaflet-tooltip-top.ocean-map-tooltip::before {
+  border-top-color: rgba(0, 229, 204, 0.8) !important;
+  border-width: 7px 7px 0 !important;
+  bottom: -7px !important;
+  margin-left: -7px !important;
+}
+
+/* Light Theme Styling */
+[data-theme="light"] .leaflet-tooltip.ocean-map-tooltip {
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-color: rgba(13, 148, 136, 0.5) !important;
+  color: #0f172a !important;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.14), 0 0 16px rgba(13, 148, 136, 0.25) !important;
+}
+
+[data-theme="light"] .leaflet-tooltip-top.ocean-map-tooltip::before {
+  border-top-color: rgba(13, 148, 136, 0.8) !important;
+}
+
+/* Tooltip Content Body */
+.map-tooltip-box {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 175px;
+}
+
+.map-tooltip-top-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.map-tooltip-temp-group {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.map-tooltip-temp {
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.45rem;
+  font-weight: 800;
+  color: #00e5cc;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+[data-theme="light"] .map-tooltip-temp {
+  color: #0d9488;
+}
+
+.map-tooltip-unit {
+  font-family: 'Outfit', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #00e5cc;
+}
+
+[data-theme="light"] .map-tooltip-unit {
+  color: #0d9488;
+}
+
+.map-tooltip-depth-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(0, 229, 204, 0.14);
+  border: 1px solid rgba(0, 229, 204, 0.35);
+  color: #00e5cc;
+  white-space: nowrap;
+}
+
+[data-theme="light"] .map-tooltip-depth-badge {
+  background: rgba(13, 148, 136, 0.1);
+  border-color: rgba(13, 148, 136, 0.3);
+  color: #0d9488;
+}
+
+.map-tooltip-datetime {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+[data-theme="light"] .map-tooltip-datetime {
+  color: #475569;
+}
+
+.map-tooltip-datetime .dt-icon {
+  font-size: 0.8rem;
+}
+
+.map-tooltip-datetime .dt-sep {
+  opacity: 0.4;
+  margin: 0 1px;
+}
+
+.map-tooltip-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  padding-top: 4px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] .map-tooltip-footer {
+  border-top-color: rgba(0, 0, 0, 0.08);
+  color: #64748b;
+}
+
+.map-tooltip-footer .loc-pin {
+  font-size: 0.75rem;
+}
+
+.map-tooltip-footer .loc-text {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+[data-theme="light"] .map-tooltip-footer .loc-text {
+  color: #334155;
+}
+
+.map-tooltip-footer .loc-basin {
+  color: #38bdf8;
+  font-weight: 600;
+}
+
+[data-theme="light"] .map-tooltip-footer .loc-basin {
+  color: #0284c7;
+}
+
+/* Land warning tooltip box */
+.map-tooltip-box.land-box {
+  min-width: 190px;
+}
+
+.map-tooltip-box.land-box .map-tooltip-warn-badge {
+  color: #f59e0b;
+  font-weight: 800;
+  font-size: 0.86rem;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.map-tooltip-box.land-box .map-tooltip-sub {
+  font-size: 0.76rem;
+  color: #fbbf24;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.map-tooltip-box.land-box .map-tooltip-meta {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
 .stage-card-footer-info {
   margin-top: 10px;
   font-size: 0.72rem;

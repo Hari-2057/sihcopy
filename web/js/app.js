@@ -34,6 +34,7 @@
   let isGoogleMapsApiActive = false;
   let googleMapInstance = null;
   let googleMarker = null;
+  let googleInfoWindow = null;
   let googlePolygon = null;
   let currentMapLayer = 'roadmap'; // 'roadmap' | 'satellite' | 'hybrid' | 'terrain'
   let mapInstance = null;
@@ -1686,9 +1687,11 @@
     });
 
     const pinSvg = `
-      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-        <circle cx="16" cy="16" r="14" fill="rgba(0, 229, 204, 0.4)" stroke="rgba(0, 229, 204, 0.7)" stroke-width="2"/>
-        <circle cx="16" cy="16" r="7" fill="#00e5cc" stroke="#ffffff" stroke-width="2"/>
+      <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40">
+        <path d="M16 2 C9.37 2 4 7.37 4 14 C4 23 16 38 16 38 C16 38 28 23 28 14 C28 7.37 22.63 2 16 2 Z" 
+              fill="#00e5cc" stroke="#ffffff" stroke-width="2.5"/>
+        <circle cx="16" cy="14" r="5" fill="#0f172a" stroke="#ffffff" stroke-width="1.5"/>
+        <circle cx="16" cy="14" r="2.5" fill="#00e5cc"/>
       </svg>
     `;
     googleMarker = new google.maps.Marker({
@@ -1698,9 +1701,19 @@
       title: `Pinned Location: ${currentLat}°N, ${currentLon}°E`,
       icon: {
         url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(pinSvg),
-        anchor: new google.maps.Point(16, 16),
-        scaledSize: new google.maps.Size(32, 32)
+        anchor: new google.maps.Point(16, 38),
+        scaledSize: new google.maps.Size(32, 40)
       }
+    });
+
+    googleMarker.addListener('drag', (e) => {
+      const lat = e.latLng.lat();
+      const lon = e.latLng.lng();
+      const clampedLat = Math.round(Math.max(5.0, Math.min(29.75, lat)) * 4) / 4;
+      const clampedLon = Math.round(Math.max(45.0, Math.min(104.75, lon)) * 4) / 4;
+      const isLandDrag = isLandCoordinate(clampedLat, clampedLon);
+      const basinDrag = detectBasin(clampedLat, clampedLon);
+      updateMarkerTooltipBox(clampedLat, clampedLon, basinDrag, isLandDrag);
     });
 
     googleMarker.addListener('dragend', (e) => {
@@ -1755,22 +1768,43 @@
       fillOpacity: 0.04
     }).addTo(mapInstance);
 
+    const arrowPinSvg = `
+      <div class="ocean-arrow-pin-wrap">
+        <div class="ocean-arrow-pulse"></div>
+        <svg class="ocean-arrow-svg" viewBox="0 0 32 40" width="32" height="40">
+          <path d="M16 2 C9.37 2 4 7.37 4 14 C4 23 16 38 16 38 C16 38 28 23 28 14 C28 7.37 22.63 2 16 2 Z" 
+                fill="#00e5cc" stroke="#ffffff" stroke-width="2.5"/>
+          <circle cx="16" cy="14" r="5" fill="#0f172a" stroke="#ffffff" stroke-width="1.5"/>
+          <circle cx="16" cy="14" r="2.5" fill="#00e5cc"/>
+        </svg>
+      </div>
+    `;
+
     const pinIcon = L.divIcon({
       className: 'custom-ocean-pin',
-      html: `
-        <div style="position:relative; width:28px; height:28px;">
-          <div style="position:absolute; inset:0; border-radius:50%; background:rgba(0, 229, 204, 0.45); animation:pinPulse 1.8s infinite;"></div>
-          <div style="position:absolute; top:5px; left:5px; width:18px; height:18px; border-radius:50%; background:#00e5cc; border:2.5px solid #ffffff; box-shadow:0 0 12px #00e5cc;"></div>
-        </div>
-      `,
-      iconSize: [28, 28],
-      iconAnchor: [14, 14]
+      html: arrowPinSvg,
+      iconSize: [32, 40],
+      iconAnchor: [16, 38],
+      tooltipAnchor: [0, -38]
     });
 
     mapMarker = L.marker([currentLat, currentLon], {
       icon: pinIcon,
       draggable: true
     }).addTo(mapInstance);
+
+    // Initial tooltip box display above arrow mark
+    updateMarkerTooltipBox(currentLat, currentLon, currentBasin, false);
+
+    // Live update while dragging the arrow on the map
+    mapMarker.on('drag', function (e) {
+      const pos = e.target.getLatLng();
+      const clampedLat = Math.round(Math.max(5.0, Math.min(29.75, pos.lat)) * 4) / 4;
+      const clampedLon = Math.round(Math.max(45.0, Math.min(104.75, pos.lng)) * 4) / 4;
+      const isLandDrag = isLandCoordinate(clampedLat, clampedLon);
+      const basinDrag = detectBasin(clampedLat, clampedLon);
+      updateMarkerTooltipBox(clampedLat, clampedLon, basinDrag, isLandDrag);
+    });
 
     mapMarker.on('dragend', function (e) {
       const pos = e.target.getLatLng();
@@ -1924,17 +1958,6 @@
     } else {
       if (mapMarker) {
         mapMarker.setLatLng([lat, lon]);
-        if (isLand) {
-          mapMarker.bindPopup(`
-            <div style="font-family:'Outfit',sans-serif;padding:6px;min-width:190px;">
-              <div style="color:#f59e0b;font-weight:800;font-size:0.9rem;display:flex;align-items:center;gap:6px;">⚠️ Land Surface Detected</div>
-              <div style="font-size:0.84rem;color:#f8fafc;margin-top:4px;font-weight:700;">Click on the ocean or select correct place</div>
-              <div style="font-size:0.72rem;color:#94a3b8;margin-top:4px;">[${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E]</div>
-            </div>
-          `).openPopup();
-        } else {
-          mapMarker.unbindPopup();
-        }
       }
       if (mapInstance) mapInstance.panTo([lat, lon]);
     }
@@ -1963,6 +1986,104 @@
     } else {
       if (lat > 9.0 && lon > 91.0) return 'Andaman Sea';
       return 'Eastern Bay of Bengal';
+    }
+  }
+
+  // =========================================================================
+  // Marker Temperature & Date/Time Tooltip Box Above Arrow Mark
+  // =========================================================================
+  function updateMarkerTooltipBox(lat, lon, basin, isLand = false) {
+    if (!mapMarker && !googleMarker) return;
+
+    let tooltipHtml = '';
+    if (isLand) {
+      tooltipHtml = `
+        <div class="map-tooltip-box land-box">
+          <div class="map-tooltip-header">
+            <span class="map-tooltip-warn-badge">⚠️ Land Surface</span>
+          </div>
+          <div class="map-tooltip-sub">Click ocean to measure temperature</div>
+          <div class="map-tooltip-meta">📍 [${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E]</div>
+        </div>
+      `;
+    } else {
+      const profile = getProfileForLocation(lat, lon, basin);
+      const depthM = DEPTHS[currentDepthIdx] !== undefined ? DEPTHS[currentDepthIdx] : 0;
+      const cVal = profile && profile[currentDepthIdx] !== undefined ? profile[currentDepthIdx] : 28.0;
+      const tempDisplay = convertTemp(cVal, currentUnit);
+      const unitSymbol = formatUnitSymbol(currentUnit);
+
+      const d = new Date(selectedDate);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const dayStr = isNaN(d.getDate()) ? '15' : String(d.getDate()).padStart(2, '0');
+      const monthStr = isNaN(d.getMonth()) ? 'Sep' : months[d.getMonth()];
+      const yearStr = isNaN(d.getFullYear()) ? '2008' : d.getFullYear();
+      const formattedDate = `${dayStr} ${monthStr} ${yearStr}`;
+
+      const hourStr = String(selectedHour).padStart(2, '0');
+      const minStr = String(selectedMinute).padStart(2, '0');
+      let utcMin = selectedMinute - 30;
+      let utcHour = selectedHour - 5;
+      if (utcMin < 0) { utcMin += 60; utcHour -= 1; }
+      if (utcHour < 0) { utcHour += 24; }
+      const utcTimeStr = `${String(utcHour).padStart(2, '0')}:${String(utcMin).padStart(2, '0')} UTC`;
+      const depthLabel = depthM === 0 ? '0m (Surface)' : `${depthM}m Depth`;
+
+      tooltipHtml = `
+        <div class="map-tooltip-box ocean-box">
+          <div class="map-tooltip-top-row">
+            <div class="map-tooltip-temp-group">
+              <span class="map-tooltip-temp">${tempDisplay}</span>
+              <span class="map-tooltip-unit">${unitSymbol}</span>
+            </div>
+            <span class="map-tooltip-depth-badge">${depthLabel}</span>
+          </div>
+          <div class="map-tooltip-datetime">
+            <span class="dt-icon">📅</span>
+            <span>${formattedDate}</span>
+            <span class="dt-sep">•</span>
+            <span class="dt-icon">⏰</span>
+            <span>${utcTimeStr}</span>
+          </div>
+          <div class="map-tooltip-footer">
+            <span class="loc-pin">📍</span>
+            <span class="loc-text">${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E</span>
+            <span class="loc-basin">${basin}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    if (mapMarker) {
+      if (!mapMarker.getTooltip()) {
+        mapMarker.bindTooltip(tooltipHtml, {
+          permanent: true,
+          direction: 'top',
+          className: 'ocean-map-tooltip',
+          offset: [0, -38],
+          opacity: 1
+        });
+      } else {
+        mapMarker.setTooltipContent(tooltipHtml);
+      }
+      if (!mapMarker.isTooltipOpen()) {
+        mapMarker.openTooltip();
+      }
+    }
+
+    if (isGoogleMapsApiActive && googleMapInstance && googleMarker) {
+      if (!googleInfoWindow) {
+        googleInfoWindow = new google.maps.InfoWindow({
+          content: tooltipHtml,
+          disableAutoPan: true,
+          pixelOffset: new google.maps.Size(0, -38)
+        });
+        googleInfoWindow.open(googleMapInstance, googleMarker);
+      } else {
+        googleInfoWindow.setContent(tooltipHtml);
+        googleInfoWindow.setPosition({ lat, lng: lon });
+        googleInfoWindow.open(googleMapInstance, googleMarker);
+      }
     }
   }
 
@@ -2057,6 +2178,7 @@
       const badgeVal3d = document.getElementById('3d-slice-depth-val');
       if (badgeVal3d) badgeVal3d.textContent = `⚠️ Click on ocean or select correct place`;
 
+      updateMarkerTooltipBox(lat, lon, currentBasin, true);
       return;
     }
 
@@ -2076,6 +2198,7 @@
     updateMonthlyChart(basin);
     updateProfileChart(profile);
     updateExplorer3DProbe(lat, lon, profile);
+    updateMarkerTooltipBox(lat, lon, basin, false);
 
     // Update printable report meta elements
     const pCoords = document.getElementById('print-station-coords');
@@ -2238,6 +2361,8 @@
     if (subText) {
       subText.textContent = `Salinity: ${sss} psu • SLA: ${sla > 0 ? '+' : ''}${sla}m • Variance: High Skill Zone`;
     }
+
+    updateMarkerTooltipBox(currentLat, currentLon, currentBasin, isCurrentSelectionLand);
   }
 
   // ALL 15 DEPTHS CLEANLY DISPLAYED WITHOUT SCROLL - SHOW ONLY DEPTH & TEMPERATURE
