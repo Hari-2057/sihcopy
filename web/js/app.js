@@ -80,77 +80,42 @@
 
   let isCurrentSelectionLand = false;
 
-  // Land vs Ocean Boundary Polygons (North Indian Ocean Domain)
-  const POLY_INDIA_MAINLAND = [
-    [8.08, 77.55], // Kanyakumari
-    [8.50, 76.90], [9.95, 76.25], [11.25, 75.75], [12.85, 74.85],
-    [14.80, 74.10], [15.50, 73.75], [17.00, 73.25], [18.95, 72.82],
-    [19.80, 72.70], [20.50, 72.80], [21.20, 72.80], [21.70, 72.20],
-    [20.75, 70.90], [20.90, 70.30], [21.60, 69.60], [22.25, 68.95],
-    [22.80, 70.00], [23.15, 68.80], [23.80, 67.50], [24.80, 66.90],
-    [25.30, 66.50], [25.20, 61.50], [25.20, 57.00],
-    [32.00, 57.00], [32.00, 92.50],
-    [23.80, 91.80], [22.30, 91.80], [21.50, 92.20],
-    [21.75, 89.50], [21.60, 88.00],
-    [21.00, 87.00], [19.80, 85.80], [19.30, 84.90],
-    [18.30, 83.90], [17.70, 83.30], [16.20, 81.60], [15.80, 80.80], [14.00, 80.15],
-    [13.10, 80.30], [11.80, 79.80], [10.80, 79.85], [10.30, 79.35], [9.30, 79.15], [9.10, 78.50]
-  ];
+  // Ground-Truth Satellite / INCOIS Ocean Domain Mask (100 x 240 Grid, 0.25° Resolution)
+  // Domain Bounds: 5.00°N to 29.75°N, 45.00°E to 104.75°E (100 Lat x 240 Lon = 24,000 Cells)
+  // Bitpacked binary mask: 1 = Ocean (Subsurface Thermal Data Active), 0 = Land (Terrestrial Surface)
+  const OCEAN_MASK_B64 = "AAf//////////////////////////////4A//AB/AAP//////////////////////////////4//+AD/AAH/////////////////////////////////+AH/AAH/////////////////////////////////+AH/AAD////////////////////4////////////+Af/AAD////////////////////wP///////////yA//AAB////////////////////wH///////////4B//AAB////////////////////gH///////7///4P//AAA////////////////////gH///////7///4f//AAA////////////////////gH///////////g///AAAf///////////////////gH///////////g///AAAf///////////////////gP//////////7B///AAAP///////////////////gP//////////6B///AAAH/////////////////w/gf//////////4B///AAAH/////////////////g/wf//////////4D//+AAAD/////////////////Afw///////////4D//+AAAB/////////////////APx///////////4H//+AAAB////////////////+ADx///////////8f//+AAAB////////////////+AD7///////////8f//+AAAB////////////////+AD////////////8f///AAAA////////////////+AB////////////8f///AAAA////////////////+AAf///////////8f//8gAAAf///////////////8AAf///////////8f//A8AAA////////////////8AAf///////////8P//g/7gAf///////////////4AAf///////////+P/8A//wA////////////////4AAf///////////+P/8A///4f///////////////wAAP///////9///+H/8A///8////////////////gAAP///////9///8H/4A////////////////////gAAP///////////8D/gA/////8f/////////////AAAP///////+///wD/gA/////9f/////////////AAAH///////+///6D7AA///////////////////+AAAH///////+///+DwAAP//////////////////+AAAH///////+///8AgAAH//////////////////+AAAH///////+///8AwAAAH/////////////////+AAAH///////////4AAAAAB/////////////////+AAAH///////////wAAAAAAH////////////////8AAAH///////////wAAAAAAD////////////////8AAAH///////////wAAAAAAB////////////////4AAAH///////////wAAAAAAAH///////////////4AAAP///////////gAAAAAAAB///////////////wAAAP///////////gAAAAAAAAH//////////////gAAAP///////////gAAAAAAAAB//////////////gAAAH///////////gAAAAAAAAB//////////////gAAAC/////////j/gAAAAAAAAB//////////////AAAAAf///////+B/AAAAAAAAAA//////////////AAAAAH///////+AfAAAAAAAAAAP////////////+AAAAAB///////+AGAAAAAAAAAAB////////////+AAAAAB////////AGAAAAAAAAAAAB///////////+AAAAAB////////AAAAAAAAAAAAAB///////////+AAAAAAf///////AAAAAAAAAAAAAB///////////+AAAAAAH///////AAAAAAAAAAAAAA///////////8AAAAAAD///////AAAAAAAAAAAAAAD//////////8AAAAAAB///////AAAAAAAAAAAAAAD//////////8AAAAAAAf/////+AAAAAAAAAAAAAAB//////////8AAAAAAAf/////+AAAAAAAAAAAAAAA//////////8AAAAAAAP/////8AAAAAAAAAAAAAAAH/////////4AAAAAAAH/////4AAAAAAAAAAAAAAAH/////////4AAAAAAAD/////wAAAAAAAAAAAAAAAH/////////4AAAAAAAB/////4AAAAAAAAAAAAAAAH/////////4AAAAAAAAP////wAAAAAAAAAAAAAAAH/////////4AAAAAAAAD////AAAAAAAAAAAAAAAAC/////////4AAAAAAAAB///+AAAAAAAAAAAAAAAAAP////////8AAAAAAAAB///8AAAAAAAAAAAAAAAAAf///////D4AAAAAAAAA///4AAAAAAAAAAAAAAAAAP//////8A4AAAAAAAAA///4AAAAAAAAAAAAAAAAAH//////4AYAAAAAAAAA///wAAAAAAAAAAAAAAAAAD//////4AAAAAAAAAAAPP/wAAAAAAAAAAAAAAAAAD//////gAAAAAAAAAAAABfwAAAAAAAAAAAAAAAAAB//////AAAAAAAAAAAAAAHgAAAAAAAAAAAAAAAAAB//////AAAAAAAAAAAAAABgAAAAAAAAAAAAAAAAAD//////gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH//////gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/////+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//////8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf//////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAHAAA//////+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/gB//////+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/4D//////+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/8D//////4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/+H//+v//4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//H/+gAKFwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//n9AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADP//zgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH///7gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP//y/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/8AHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA//wAMAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAB//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAH/wAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAP/gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA/+AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAf4AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA";
 
-  const POLY_SRI_LANKA = [
-    [9.85, 80.20], [9.00, 80.85], [8.50, 81.35], [7.70, 81.75],
-    [6.80, 81.85], [5.90, 80.55], [6.00, 80.20], [6.95, 79.85],
-    [8.00, 79.80], [8.80, 79.80], [9.85, 80.20]
-  ];
-
-  const POLY_ARABIA = [
-    [12.60, 43.50], [12.80, 45.00], [14.00, 48.30], [14.50, 49.20],
-    [15.30, 52.20], [16.90, 54.00], [18.00, 55.50], [19.60, 57.80],
-    [20.70, 58.80], [22.50, 59.85], [23.60, 58.50], [24.50, 56.50],
-    [26.20, 56.40], [27.00, 56.00], [32.00, 56.00], [32.00, 40.00],
-    [12.00, 40.00]
-  ];
-
-  const POLY_AFRICA = [
-    [12.00, 43.00], [11.85, 51.30], [10.40, 51.20], [8.00, 49.80],
-    [5.30, 48.50], [3.00, 46.50], [2.00, 45.30], [0.00, 42.50],
-    [-4.00, 39.50], [-10.00, 39.00], [-10.00, 35.00], [12.00, 35.00]
-  ];
-
-  const POLY_SE_ASIA = [
-    [21.00, 92.50], [19.80, 93.50], [18.00, 94.40], [16.00, 94.20],
-    [15.80, 95.50], [16.50, 96.50], [16.50, 97.60], [14.00, 98.20],
-    [12.00, 98.60], [9.80, 98.60], [8.00, 98.30], [6.00, 100.00],
-    [1.30, 103.80], [1.30, 105.00], [32.00, 105.00], [32.00, 92.50]
-  ];
-
-  const POLY_SUMATRA = [
-    [5.60, 95.30], [3.00, 97.50], [0.00, 99.00], [-3.00, 102.00],
-    [-5.80, 105.50], [-5.90, 106.00], [-1.00, 105.00], [2.00, 101.50], [5.50, 95.50]
-  ];
-
-  function pointInPolygon(pt, poly) {
-    const x = pt[0], y = pt[1];
-    let inside = false;
-    for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) {
-      const xi = poly[i][0], yi = poly[i][1];
-      const xj = poly[j][0], yj = poly[j][1];
-      const intersect = ((yi > y) !== (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-      if (intersect) inside = !inside;
+  const OCEAN_MASK_BYTES = (function () {
+    try {
+      if (typeof atob === 'function') {
+        const binary = atob(OCEAN_MASK_B64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+          bytes[i] = binary.charCodeAt(i);
+        }
+        return bytes;
+      }
+    } catch (e) {
+      console.error('Failed to decode OCEAN_MASK_B64:', e);
     }
-    return inside;
-  }
+    return new Uint8Array(3000);
+  })();
 
   function isLandCoordinate(lat, lon) {
-    if (lat > 25.5 || lat < -10.0 || lon < 45.0 || lon > 103.0) return true;
-    const pt = [lat, lon];
-    if (pointInPolygon(pt, POLY_INDIA_MAINLAND)) return true;
-    if (pointInPolygon(pt, POLY_SRI_LANKA)) return true;
-    if (pointInPolygon(pt, POLY_ARABIA)) return true;
-    if (pointInPolygon(pt, POLY_AFRICA)) return true;
-    if (pointInPolygon(pt, POLY_SE_ASIA)) return true;
-    if (pointInPolygon(pt, POLY_SUMATRA)) return true;
-    return false;
+    const r = Math.round((lat - 5.0) / 0.25);
+    const c = Math.round((lon - 45.0) / 0.25);
+
+    // Within domain grid bounds:
+    if (r >= 0 && r < 100 && c >= 0 && c < 240) {
+      const bitIdx = r * 240 + c;
+      const byteIdx = bitIdx >> 3;
+      const bitOffset = 7 - (bitIdx & 7);
+      const isOcean = (OCEAN_MASK_BYTES[byteIdx] >> bitOffset) & 1;
+      return !isOcean; // Returns true if Land, false if Ocean
+    }
+
+    // Outside domain boundaries
+    return true;
   }
 
   // Charts references
@@ -201,6 +166,21 @@
     } catch (e) {
       console.warn('Could not load ocean_data.json, using fallback data', e);
       oceanData = getFallbackData();
+    }
+
+    try {
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.has('lat') && urlParams.has('lon')) {
+        const pLat = parseFloat(urlParams.get('lat'));
+        const pLon = parseFloat(urlParams.get('lon'));
+        if (!isNaN(pLat) && !isNaN(pLon)) {
+          currentLat = Math.round(Math.max(5.0, Math.min(29.75, pLat)) * 4) / 4;
+          currentLon = Math.round(Math.max(45.0, Math.min(104.75, pLon)) * 4) / 4;
+          currentBasin = detectBasin(currentLat, currentLon);
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading URL params:', e);
     }
 
     try { setupTabs(); } catch (e) { console.error('Error in setupTabs:', e); }
@@ -1794,7 +1774,8 @@
     }).addTo(mapInstance);
 
     // Initial tooltip box display above arrow mark
-    updateMarkerTooltipBox(currentLat, currentLon, currentBasin, false);
+    const initialIsLand = isLandCoordinate(currentLat, currentLon);
+    updateMarkerTooltipBox(currentLat, currentLon, currentBasin, initialIsLand);
 
     // Live update while dragging the arrow on the map
     mapMarker.on('drag', function (e) {
@@ -1976,16 +1957,22 @@
 
   function detectBasin(lat, lon) {
     if (lon < 77.0) {
+      if (lat > 23.5 && lon < 60.0) return 'Gulf of Oman / Persian Gulf';
       if (lat > 20.0) return 'Northern Arabian Sea';
-      if (lon < 55.0) return 'Gulf of Aden / West IO';
+      if (lon < 55.0 && lat < 15.0) return 'Gulf of Aden / West IO';
+      if (lat < 8.0) return 'South Arabian Sea / Equatorial IO';
       return 'Arabian Sea';
     } else if (lon >= 77.0 && lon <= 92.0) {
       if (lat < 8.0) return 'Equatorial Indian Ocean';
-      if (lon < 80.0) return 'Lakshadweep Sea / Sri Lanka';
+      if (lon < 80.0) return 'Lakshadweep Sea';
       return 'Bay of Bengal';
     } else {
-      if (lat > 9.0 && lon > 91.0) return 'Andaman Sea';
-      return 'Eastern Bay of Bengal';
+      if (lon >= 99.0) {
+        if (lat >= 6.0) return 'Gulf of Thailand / South China Sea';
+        return 'Strait of Malacca';
+      }
+      if (lat < 6.0) return 'Strait of Malacca / North Sumatra';
+      return 'Andaman Sea';
     }
   }
 
@@ -2090,7 +2077,11 @@
   // =========================================================================
   // Update Location Details Across Entire Web App
   // =========================================================================
-  function updateLocationDetails(lat, lon, basin, isLand = false) {
+  function updateLocationDetails(lat, lon, basin, isLand = null) {
+    if (isLand === null) {
+      isLand = isLandCoordinate(lat, lon);
+    }
+    isCurrentSelectionLand = isLand;
     const coordStr = `${lat.toFixed(2)}°N, ${lon.toFixed(2)}°E`;
     const boxStr = `[${coordStr}]`;
 
